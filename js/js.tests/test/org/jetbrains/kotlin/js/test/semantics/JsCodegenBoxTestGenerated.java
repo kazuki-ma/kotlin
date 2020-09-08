@@ -22665,6 +22665,11 @@ public class JsCodegenBoxTestGenerated extends AbstractJsCodegenBoxTest {
                     runTest("compiler/testData/codegen/box/reflection/typeOf/nonReifiedTypeParameters/simplePropertyParameter.kt");
                 }
 
+                @TestMetadata("starProjectionInUpperBound.kt")
+                public void testStarProjectionInUpperBound() throws Exception {
+                    runTest("compiler/testData/codegen/box/reflection/typeOf/nonReifiedTypeParameters/starProjectionInUpperBound.kt");
+                }
+
                 @TestMetadata("typeParameterFlags.kt")
                 public void testTypeParameterFlags() throws Exception {
                     runTest("compiler/testData/codegen/box/reflection/typeOf/nonReifiedTypeParameters/typeParameterFlags.kt");
