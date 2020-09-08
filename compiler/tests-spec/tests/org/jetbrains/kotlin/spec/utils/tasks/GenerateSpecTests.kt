@@ -72,6 +72,5 @@ fun generateTests() {
 
 fun main() {
     TestsJsonMapGenerator.buildTestsMapPerSection()
-    TestsJsonMapGenerator.buildTestsMapPerSection()
     generateTests()
 }
