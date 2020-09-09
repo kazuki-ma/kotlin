@@ -27,10 +27,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.vfs.newvfs.BulkFileListener;
-import com.intellij.openapi.vfs.newvfs.events.VFileCopyEvent;
-import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent;
-import com.intellij.openapi.vfs.newvfs.events.VFileEvent;
-import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent;
+import com.intellij.openapi.vfs.newvfs.events.*;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.PsiElementFinderImpl;
 import com.intellij.psi.impl.file.PsiPackageImpl;
@@ -99,24 +96,35 @@ public class KotlinJavaPsiFacade {
 
         emptyModifierList = new LightModifierList(PsiManager.getInstance(project), KotlinLanguage.INSTANCE);
 
-        PsiModificationTracker modificationTracker = PsiManager.getInstance(project).getModificationTracker();
+        // drop entire cache when it is low free memory
+        LowMemoryWatcher.register(this::clearPackageCaches, project);
 
         MessageBusConnection connection = project.getMessageBus().connect();
+
+        // VFS changes like create/delete/copy/move directory are subject to clean up short term caches
         connection.subscribe(VirtualFileManager.VFS_CHANGES, new BulkFileListener() {
             @Override
             public void after(@NotNull List<? extends VFileEvent> events) {
                 boolean relevant = false;
                 for (VFileEvent event : events) {
-                    relevant = (event instanceof VFileCreateEvent || event instanceof VFileMoveEvent || event instanceof VFileCopyEvent);
+                    VirtualFile file = event.getFile();
+                    relevant = ((event instanceof VFileCreateEvent && ((VFileCreateEvent) event).isDirectory()) ||
+                                (file != null && file.isDirectory() &&
+                                 (event instanceof VFileDeleteEvent ||
+                                  event instanceof VFileMoveEvent ||
+                                  event instanceof VFileCopyEvent)));
 
                     if (relevant) break;
                 }
                 if (relevant) {
-                    clearPackageCaches();
+                    clearPackageCaches(false);
                 }
             }
         });
-        LowMemoryWatcher.register(this::forceClearPackageCaches, project);
+
+        // PSI changes (like in R files) could lead to creating virtual packages
+        // therefore it has to clean up short term caches
+        PsiModificationTracker modificationTracker = PsiManager.getInstance(project).getModificationTracker();
         connection.subscribe(PsiModificationTracker.TOPIC, new PsiModificationTracker.Listener() {
             private long lastTimeSeen = -1L;
 
@@ -126,18 +134,22 @@ public class KotlinJavaPsiFacade {
                 if (lastTimeSeen != now) {
                     lastTimeSeen = now;
 
-                    clearPackageCaches();
+                    clearPackageCaches(false);
                 }
             }
         });
     }
 
     public void clearPackageCaches() {
-        obtainPackageCache().clear();
+        clearPackageCaches(true);
     }
 
-    private void forceClearPackageCaches() {
-        packageCache = null;
+    private void clearPackageCaches(boolean force) {
+        if (force) {
+            packageCache = null;
+        } else {
+            obtainPackageCache().clear();
+        }
     }
 
     public LightModifierList getEmptyModifierList() {

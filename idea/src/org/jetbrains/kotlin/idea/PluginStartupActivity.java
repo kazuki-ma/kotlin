@@ -16,6 +16,7 @@
 
 package org.jetbrains.kotlin.idea;
 
+import com.intellij.ProjectTopics;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -25,6 +26,8 @@ import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ModuleRootEvent;
+import com.intellij.openapi.roots.ModuleRootListener;
 import com.intellij.openapi.startup.StartupActivity;
 import com.intellij.openapi.updateSettings.impl.UpdateChecker;
 import com.intellij.openapi.util.Disposer;
@@ -36,6 +39,7 @@ import org.jetbrains.kotlin.diagnostics.Errors;
 import org.jetbrains.kotlin.idea.reporter.KotlinReportSubmitter;
 import org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinTodoSearcher;
 import org.jetbrains.kotlin.js.resolve.diagnostics.ErrorsJs;
+import org.jetbrains.kotlin.resolve.jvm.KotlinJavaPsiFacade;
 import org.jetbrains.kotlin.resolve.jvm.diagnostics.ErrorsJvm;
 import org.jetbrains.kotlin.resolve.konan.diagnostics.ErrorsNative;
 
@@ -51,6 +55,13 @@ public class PluginStartupActivity implements StartupActivity {
         }
 
         StartupCompatKt.runActivity(project);
+
+        project.getMessageBus().connect().subscribe(ProjectTopics.PROJECT_ROOTS, new ModuleRootListener() {
+            @Override
+            public void rootsChanged(@NotNull ModuleRootEvent event) {
+                KotlinJavaPsiFacade.getInstance(project).clearPackageCaches();
+            }
+        });
 
         initializeDiagnostics();
 
