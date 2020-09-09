@@ -18,6 +18,7 @@ import java.io.File
 object TestsJsonMapGenerator {
     const val LINKED_TESTS_PATH = "linked"
     const val TESTS_MAP_FILENAME = "testsMap.json"
+    const val GENERAL_TESTS_MAP_FILENAME = "generalTestsMap.json"
 
     private inline fun <reified T : JsonElement> JsonObject.getOrCreate(key: String): T {
         if (!has(key)) {
@@ -107,12 +108,82 @@ object TestsJsonMapGenerator {
         }
 
         val gson = GsonBuilder().setPrettyPrinting().create()
+        var resJsonObject = JsonObject()
 
         testsMap.keySet().forEach { testPath ->
             val testMapFolder = "${GeneralConfiguration.SPEC_TESTDATA_PATH}/$testPath"
 
             File(testMapFolder).mkdirs()
             File("$testMapFolder/$TESTS_MAP_FILENAME").writeText(gson.toJson(testsMap.get(testPath)))
+
+            buildMapFromList(testPath, resJsonObject)
+        }
+        //todo temp
+        val testMapFolder = "${GeneralConfiguration.SPEC_TESTDATA_PATH}"
+        File(testMapFolder).mkdirs()
+
+        val text = gson.toJson(resJsonObject)
+        File("$testMapFolder/gentest.json").appendText(text)
+
+
+//        println("olololo+ "+ testsMap.keySet().first())
+//        buildMapFromList(testsMap.keySet().first().split("/"))
+    }
+
+    fun buildGenegalTestMap(testPath: String) {
+        val gson = GsonBuilder().setPrettyPrinting().create()
+
+        val testMapFolder = "${GeneralConfiguration.SPEC_TESTDATA_PATH}"
+        File(testMapFolder).mkdirs()
+
+        val jsonElement = JsonObject()
+        val folderList = testPath.split("/").reversed().listIterator()
+        /* folderList.
+                 val x = JsonElement().apply { this.add }folderList.first()
+
+             .forEach{
+             jsonElement.add (propertyName, eclosedJsonEl)
+         }*/
+
+        val text = gson.toJson(jsonElement)
+        File("$testMapFolder").writeText(text)
+
+    }
+
+    fun buildMapFromList(testsPath: String, resJsonObject : JsonObject) {
+        val pathList = testsPath.split("/")
+        val (arePath, sectionPath) = if (pathList.first() == "psi") {
+            Pair("psi", pathList.subList(2, pathList.size).joinToString("/"))
+        } else if (pathList.first() == "diagnostics") {
+            Pair("diagnostics", pathList.subList(2, pathList.size).joinToString("/"))
+        } else if (pathList.first() == "codegen") {
+            if (pathList[1] == "box") {
+                Pair("codegen/box", pathList.subList(3, pathList.size).joinToString("/"))
+            } else {
+                throw IllegalArgumentException("Codegen path ${pathList.first()} doesn't match spec path pattern!!")
+            }
+        } else {
+            throw IllegalArgumentException("Path ${pathList.first()} doesn't match spec path pattern2§13")
+        }
+
+
+        var tmp = JsonObject()
+
+
+        if (!resJsonObject.has(arePath)) {
+            val jsArr = JsonArray()
+            jsArr.add(sectionPath)
+            resJsonObject.add(arePath, jsArr)
+
+            println("foooo"+ "**" + sectionPath)
+
+        } else {
+            val jsArr = resJsonObject.get(arePath) as? JsonArray ?: throw Exception("json element doesn't exist")
+            jsArr.add(sectionPath)
+            resJsonObject.remove(arePath) //todo ??
+            resJsonObject.add(arePath, jsArr)
+            println("hehehoooo =="+ arePath + "**" + sectionPath)
+
         }
     }
 }
