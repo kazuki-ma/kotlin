@@ -22,6 +22,7 @@ import org.jetbrains.kotlin.load.java.lazy.descriptors.LazyJavaPackageFragment
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.storage.CacheWithNotNullValues
+import org.jetbrains.kotlin.utils.addIfNotNull
 
 class LazyJavaPackageFragmentProvider(
     components: JavaResolverComponents
@@ -42,9 +43,8 @@ class LazyJavaPackageFragmentProvider(
 
     override fun getPackageFragments(fqName: FqName) = listOfNotNull(getPackageFragment(fqName))
 
-    override fun collectPackageFragments(fqName: FqName, packageFragments: MutableCollection<PackageFragmentDescriptor>) {
-        getPackageFragment(fqName)?.let { packageFragments.add(it) }
-    }
+    override fun collectPackageFragments(fqName: FqName, packageFragments: MutableCollection<PackageFragmentDescriptor>) =
+        packageFragments.addIfNotNull(getPackageFragment(fqName))
 
     override fun getSubPackagesOf(fqName: FqName, nameFilter: (Name) -> Boolean) =
         getPackageFragment(fqName)?.getSubPackageFqNames().orEmpty()

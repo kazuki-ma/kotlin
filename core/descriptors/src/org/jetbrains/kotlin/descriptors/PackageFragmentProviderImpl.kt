@@ -22,12 +22,8 @@ import org.jetbrains.kotlin.name.Name
 class PackageFragmentProviderImpl(
     private val packageFragments: Collection<PackageFragmentDescriptor>
 ) : PackageFragmentProvider {
-    override fun collectPackageFragments(fqName: FqName, fragments: MutableCollection<PackageFragmentDescriptor>) {
-        for (packageFragment in packageFragments) {
-            if (packageFragment.fqName == fqName) {
-                fragments.add(packageFragment)
-            }
-        }
+    override fun collectPackageFragments(fqName: FqName, packageFragments: MutableCollection<PackageFragmentDescriptor>) {
+        this.packageFragments.filterTo(packageFragments) { it.fqName == fqName }
     }
 
     override fun getSubPackagesOf(fqName: FqName, nameFilter: (Name) -> Boolean): Collection<FqName> =
